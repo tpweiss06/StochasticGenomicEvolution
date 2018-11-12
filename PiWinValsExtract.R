@@ -3,7 +3,7 @@
 
 setwd("/mnt/md0raid1_2tb/SpatialStructSeqData/IndPileUps")
 FileNames <- read.table("file_names.txt")
-NumPops <- dim(file_names)[1]
+NumPops <- dim(FileNames)[1]
 struct <- c(31:40, 51:60, 71:80)
 SamplePrefix <- strsplit(as.character(FileNames$V1[1]), ".pi")[[1]]
 
@@ -19,7 +19,7 @@ ShuffFound <- NULL
 
 # Loop through all the input files and sort them into the relevant vectors above
 for(i in 1:NumPops){
-     CurData <- as.character(FileNames$V1[j])
+     CurData <- as.character(FileNames$V1[i])
      MetaData <- strsplit(CurData, split = "_")[[1]]
      if(MetaData[2] == "0"){
           if(as.numeric(MetaData[1]) %in% struct){
@@ -41,7 +41,7 @@ for(i in 1:NumPops){
 # Create a vector with all the necessary prefixes for the pi calculations.
 # NOTE: The 10,000 window value has no prefix as that is the default.
 WinVals <- c("_5000", "_7500", "", "_12500", "_15000")
-
+ChromVals <- vector(mode = "list", length = 5)
 for(i in 1:5){
      # First, Load in an example data file to extract the number of windows
      #    and use that to set up the PiValsMat for the current window size
@@ -51,19 +51,19 @@ for(i in 1:5){
      PiValsMats[[i]] <- matrix(NA, nrow = NumWins, ncol = NumPops)
      
      # Get the chromosome information for each window
-     Chrom <- SampleData$V1
+     ChromVals[[i]] <- SampleData$V1
      
      # Now loop through each file and read in the pi values
      for(j in 1:NumPops){
           CurData <- as.character(FileNames$V1[j])
           Prefix <- strsplit(CurData, split = ".pi")[[1]]
-          InFile <- paste(Prefix, WinVals[j], ".pi", sep = "")
+          InFile <- paste(Prefix, WinVals[i], ".pi", sep = "")
           PiVals <- read.table(InFile, na.strings = "na")
-          PiValsMats[[i]][,i] <- PiVals$V5
+          PiValsMats[[i]][,j] <- PiVals$V5
      }
 }
 
-save(PiValsMat, StructFound, ShuffFound, EdgePops, CorePops, ShufPops,
+save(PiValsMats, StructFound, ShuffFound, EdgePops, CorePops, ShufPops,
      file = "/home/topher/RangeExpansionGenetics/FinalAnalyses/DeltaPi/PiWinVals.rdata")
 
 # Now calculate the mean and standard deviation of delta pi values at each window
@@ -72,6 +72,7 @@ DeltaData <- vector(mode = "list", length = 5)
 for(i in 1:5){
      # First subset for only the data without any missing values
      GoodWins <- which( rowSums(is.na(PiValsMats[[i]])) == 0 )
+     WinChroms <- ChromVals[[i]][GoodWins]
      CompletePiVals <- PiValsMats[[i]][GoodWins,]
      
      # Next create matrices to hold all the delta pi values for each category
@@ -99,6 +100,7 @@ for(i in 1:5){
      CurDeltaData <- expand.grid(window = GoodWins, location = location)
      sigma <- rep(NA, nrow(CurDeltaData))
      mu <- rep(NA, nrow(CurDeltaData))
+     Chrom <- rep(WinChroms, 3)
      CurDeltaData <- cbind(CurDeltaData, mu, sigma, Chrom)
      # Create an index for each location to keep track
      CoreIndex <- 1

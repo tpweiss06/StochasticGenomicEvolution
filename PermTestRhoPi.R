@@ -13,7 +13,7 @@ est <- rep(NA, 15)
 lwr <- rep(NA, 15)
 upr <- rep(NA, 15)
 pVal <- rep(NA, 15)
-PermResults <- cbind(PermResults, est, lwr, upr, Pval)
+PermResults <- cbind(PermResults, est, lwr, upr, pVal)
 
 # Create a list to hold all the rho vals for later graphing
 RhoVals <- vector(mode = "list", length = 5)
@@ -39,7 +39,7 @@ for(i in 1:5){
      RhoVals[[i]] <- list(Found = FoundRho, Core = CoreRho, Edge = EdgeRho, Shuf = ShufRho)
      
      # Save the mean values for each group
-     ObsTrtMeans <- c(mean(CoreRhoVals), mean(EdgeRhoVals), mean(ShufRhoVals))
+     ObsTrtMeans <- c(mean(CoreRho), mean(EdgeRho), mean(ShufRho))
 
      # Calculate the mean absolute difference between groups for the test statistic
      obsMAD <- sum(abs(c(diff(ObsTrtMeans), diff(ObsTrtMeans, lag = 2)))) / 3
@@ -51,16 +51,16 @@ for(i in 1:5){
           Rand <- sample(1:nrow(FullRhoMat))
           RandMat <- FullRhoMat[Rand,]
           RandMat <- RandMat[,Rand]
-          CoreRandMat <- randRhoMat[1:22, 1:22]
-          EdgeRandMat <- randRhoMat[23:44, 23:44]
-          ShufRandMat <- randRhoMat[45:59, 45:59]
+          CoreRandMat <- RandMat[1:22, 1:22]
+          EdgeRandMat <- RandMat[23:44, 23:44]
+          ShufRandMat <- RandMat[45:59, 45:59]
           CoreRandVals <- CoreRandMat[lower.tri(CoreRandMat)]
           EdgeRandVals <- EdgeRandMat[lower.tri(EdgeRandMat)]
           ShufRandVals <- ShufRandMat[lower.tri(ShufRandMat)]
           
           # Calculate the test statistic for the randomized values
           RandTrtMeans <- c(mean(CoreRandVals), mean(EdgeRandVals), mean(ShufRandVals))
-          MAD[i] <- sum(abs(c(diff(RandTrtMeans), diff(RandTrtMeans, lag=2)))) / 3
+          MAD[j] <- sum(abs(c(diff(RandTrtMeans), diff(RandTrtMeans, lag=2)))) / 3
      }
      # Calculate how many simulations have a value greater than the observed
      PermResults$pVal[1:3 + 3*(i-1)] <- sum(MAD >= obsMAD) / reps
@@ -80,7 +80,7 @@ for(i in 1:5){
           SimEdge <- sample(EdgeRho, size = length(EdgeRho), replace = TRUE)
           SimCore <- sample(CoreRho, size = length(CoreRho), replace = TRUE)
           SimShuf <- sample(ShufRho, size = length(ShufRho), replace = TRUE)
-          SimFound <- sample(FounderRho, size = length(FounderRho), replace = TRUE)
+          SimFound <- sample(FoundRho, size = length(FoundRho), replace = TRUE)
           
           SimCoreReduct[j] <- (mean(SimFound) - mean(SimCore)) / mean(SimFound)
           SimEdgeReduct[j] <- (mean(SimFound) - mean(SimEdge)) / mean(SimFound)

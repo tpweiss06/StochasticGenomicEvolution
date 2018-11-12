@@ -55,7 +55,11 @@ for(i in 1:NumFiles){
      }
      # Now loop through the pi values for each window size and populate the data frame
      for(j in 1:5){
-          InFile <- paste(Prefix, WinVals[j], ".pi", sep = "")
+          if(j == 3){
+               InFile <- CurData
+          } else{
+               InFile <- paste(Prefix, WinVals[j], ".pi", sep = "")
+          }
           PiVals <- read.table(InFile, na.strings = "na")
           Autosomes <- subset(PiVals, V1 != "CM000276.3")
           SexChromosomes <- subset(PiVals, V1 == "CM000276.3")

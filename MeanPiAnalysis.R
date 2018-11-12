@@ -21,11 +21,11 @@ NumLandscapes <- matrix(NA, nrow = 3, ncol = 2)
 colnames(NumLandscapes) <- c("struct", "shuf")
 rownames(NumLandscapes) <- c("B2", "B3", "B4")
 NumLandscapes[1,1] <- nrow(subset(FounderData, (block == 2) & (treat == "struct")))
-NumLandscapes[1,2] <- nrow(subset(FounderData, (block == 2) & (treat == "shuf")))
+NumLandscapes[1,2] <- nrow(subset(FounderData, (block == 2) & (treat == "shuff")))
 NumLandscapes[2,1] <- nrow(subset(FounderData, (block == 3) & (treat == "struct")))
-NumLandscapes[2,2] <- nrow(subset(FounderData, (block == 3) & (treat == "shuf")))
+NumLandscapes[2,2] <- nrow(subset(FounderData, (block == 3) & (treat == "shuff")))
 NumLandscapes[3,1] <- nrow(subset(FounderData, (block == 4) & (treat == "struct")))
-NumLandscapes[3,2] <- nrow(subset(FounderData, (block == 4) & (treat == "shuf")))
+NumLandscapes[3,2] <- nrow(subset(FounderData, (block == 4) & (treat == "shuff")))
 NumLandscapes
 
 # Create the data frames to hold all the results from the statistical analyses
@@ -68,7 +68,7 @@ ModEffects <- function(fitobj){
      EC <- (Core-Edge)/Core
      ES <- (Shuf-Edge)/Shuf
      # Return all the relevant quantities
-     return(Core, Edge, Shuf, EC, ES)
+     return(c(Core, Edge, Shuf, EC, ES))
 }
 
 
@@ -82,8 +82,8 @@ for(i in 1:5){
      for(j in 1:dim(Gen8Data)[1]){
           cur_landscape <- Gen8Data$landscape[j]
           founder <- subset(FounderData, landscape == cur_landscape)
-          Gen8Data$AutoDiff[i] <- Gen8Data[j,6+4*(i-1)] - founder[j,6+4*(i-1)]
-          Gen8Data$SexDiff[i] <- Gen8Data[j,7+4*(i-1)] - founder[j,7+4*(i-1)]
+          Gen8Data$AutoDiff[j] <- Gen8Data[j,6+4*(i-1)] - founder[1,6+4*(i-1)]
+          Gen8Data$SexDiff[j] <- Gen8Data[j,7+4*(i-1)] - founder[1,7+4*(i-1)]
      }
      
      ################# Now calculate the statistics without using a block effect
@@ -119,7 +119,7 @@ for(i in 1:5){
      NullMod <- lm(SexDiff ~ 1, data = Gen8Data)
      MeanNoBlockSex$P[i] <- anova(FullMod, NullMod)$"Pr(>F)"[2]
      MeanNoBlockSex$EC[i] <- (-1*FullMod$coefficients[2]) / FullMod$coefficients[1]
-     MeanNoblockSex$ES[i] <- (FullMod$coefficients[3] - FullMod$coefficients[2]) / 
+     MeanNoBlockSex$ES[i] <- (FullMod$coefficients[3] - FullMod$coefficients[2]) / 
           (FullMod$coefficients[1] + FullMod$coefficients[3])
      ##### CIs
      CIDat <- expand.grid(location=factor(c("C", "E", "S")))
@@ -147,7 +147,7 @@ for(i in 1:5){
      FullMod <- lmer(AutoDiff ~ location + (1|block), data = Gen8Data)
      NullMod <- lmer(AutoDiff ~ 1 + (1|block), data = Gen8Data)
      PermTest <- PBmodcomp(FullMod, NullMod, nsim = 10000)
-     MeanBlockAuto$P[i] <- PermTest$LRTstat[3]
+     MeanBlockAuto$P[i] <- PermTest$test$p.value[2]
      PointEsts <- ModEffects(FullMod)
      MeanBlockAuto$C[i] <- PointEsts[1]
      MeanBlockAuto$E[i] <- PointEsts[2]
@@ -156,11 +156,11 @@ for(i in 1:5){
      MeanBlockAuto$ES[i] <- PointEsts[5]
      ##### CIs
      # Perform the bootstrap simulations
-     bootpreds <- bootMer(FullMod, ModEsts, nsim = 10000)
+     bootpreds <- bootMer(FullMod, ModEffects, nsim = 10000)
      # Calculate the resultant intervals
      ParamCIs <- vector("list", 5)
-     for (i in 1:5){
-          ParamCIs[[i]] <- boot.ci(bootpreds, type = "perc", index = i)
+     for (j in 1:5){
+          ParamCIs[[j]] <- boot.ci(bootpreds, type = "perc", index = j)
      }
      MeanBlockAuto$Clwr <- ParamCIs[[1]]$percent[1,4]
      MeanBlockAuto$Cupr <- ParamCIs[[1]]$percent[1,5]
@@ -176,13 +176,13 @@ for(i in 1:5){
      FullMod <- lmer(FounderData[,6+4*(i-1)] ~ FounderData$treat + (1|FounderData$block))
      NullMod <- lmer(FounderData[,6+4*(i-1)] ~ 1+ (1|FounderData$block))
      PermTest <- PBmodcomp(FullMod, NullMod, nsim = 10000)
-     MeanBlockAuto$FoundP[i] <- PermTest$LRTstat[3]
+     MeanBlockAuto$FoundP[i] <- PermTest$test$p.value[2]
      
      ########## Sex chromosome results
      FullMod <- lmer(SexDiff ~ location + (1|block), data = Gen8Data)
      NullMod <- lmer(SexDiff ~ 1 + (1|block), data = Gen8Data)
      PermTest <- PBmodcomp(FullMod, NullMod, nsim = 10000)
-     MeanBlockSex$P[i] <- PermTest$LRTstat[3]
+     MeanBlockSex$P[i] <- PermTest$test$p.value[2]
      PointEsts <- ModEffects(FullMod)
      MeanBlockSex$C[i] <- PointEsts[1]
      MeanBlockSex$E[i] <- PointEsts[2]
@@ -191,11 +191,11 @@ for(i in 1:5){
      MeanBlockSex$ES[i] <- PointEsts[5]
      ##### CIs
      # Perform the bootstrap simulations
-     bootpreds <- bootMer(FullMod, ModEsts, nsim = 10000)
+     bootpreds <- bootMer(FullMod, ModEffects, nsim = 10000)
      # Calculate the resultant intervals
      ParamCIs <- vector("list", 5)
-     for (i in 1:5){
-          ParamCIs[[i]] <- boot.ci(bootpreds, type = "perc", index = i)
+     for (j in 1:5){
+          ParamCIs[[j]] <- boot.ci(bootpreds, type = "perc", index = j)
      }
      MeanBlockSex$Clwr <- ParamCIs[[1]]$percent[1,4]
      MeanBlockSex$Cupr <- ParamCIs[[1]]$percent[1,5]
@@ -211,7 +211,7 @@ for(i in 1:5){
      FullMod <- lmer(FounderData[,7+4*(i-1)] ~ FounderData$treat + (1|FounderData$block))
      NullMod <- lmer(FounderData[,7+4*(i-1)] ~ 1+ (1|FounderData$block))
      PermTest <- PBmodcomp(FullMod, NullMod, nsim = 10000)
-     MeanBlockSex$FoundP[i] <- PermTest$LRTstat[3]
+     MeanBlockSex$FoundP[i] <- PermTest$test$p.value[2]
 }
 
 save(MeanNoBlockAuto, MeanNoBlockSex, MeanBlockAuto, MeanBlockSex, 
